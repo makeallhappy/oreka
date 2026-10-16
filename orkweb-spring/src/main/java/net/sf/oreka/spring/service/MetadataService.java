@@ -40,6 +40,7 @@ public class MetadataService {
     private final SegmentRepository segmentRepository;
     private final TapeRepository tapeRepository;
     private final LoginStringRepository loginStringRepository;
+    private final ProgramFilterService programFilterService;
 
     /** 按 capturePort 暂存 metadata START(等 STOP 配对) */
     private final Map<String, PendingStart> pendingStarts = new ConcurrentHashMap<>();
@@ -47,11 +48,13 @@ public class MetadataService {
     public MetadataService(ServiceRepository serviceRepository,
                            SegmentRepository segmentRepository,
                            TapeRepository tapeRepository,
-                           LoginStringRepository loginStringRepository) {
+                           LoginStringRepository loginStringRepository,
+                           ProgramFilterService programFilterService) {
         this.serviceRepository = serviceRepository;
         this.segmentRepository = segmentRepository;
         this.tapeRepository = tapeRepository;
         this.loginStringRepository = loginStringRepository;
+        this.programFilterService = programFilterService;
     }
 
     /**
@@ -150,6 +153,12 @@ public class MetadataService {
         // 关联运行中 tape(同 port 最新非 STOP)
         Optional<OrkTape> tape = tapeRepository.findFirstByPortNameAndStateNotOrderByIdDesc(capturePort, "STOP");
         tape.ifPresent(segment::setTape);
+
+        // Program 过滤(老代码 filterSegmentAgainstAllPrograms):无计划全录,有计划需命中一个
+        if (!programFilterService.shouldKeep(segment)) {
+            log.info("#{}: segment dropped by program filter {}->{}", capturePort, localParty, remoteParty);
+            return;
+        }
 
         segmentRepository.save(segment);
         log.info("#{}: written segment id={} dur={}s {}->{} tape={}",
