@@ -59,7 +59,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Optional<OrkUser> findByLoginString(String loginString) {
-        return loginStringRepository.findByLoginString(loginString)
+        return loginStringRepository.findFirstByLoginStringOrderByIdAsc(loginString)
                 .map(OrkLoginString::getUser)
                 .filter(u -> !u.isDeleted() && !u.isDisabled());
     }

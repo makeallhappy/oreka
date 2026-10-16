@@ -40,9 +40,10 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(int userId) {
+    public String generateRefreshToken(int userId, String loginString) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("loginString", loginString)
                 .claim("type", "refresh")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshTokenTtlMs))

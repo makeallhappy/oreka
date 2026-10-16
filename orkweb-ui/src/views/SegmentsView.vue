@@ -86,6 +86,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Refresh, VideoPlay, Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import api from '@/api/client'
 import AudioPlayer from '@/components/AudioPlayer.vue'
 
@@ -164,9 +165,25 @@ function onPlay(row: Segment) {
   playDialog.value = true
 }
 
-function onDownload(row: Segment) {
-  if (row.tapeId) {
-    window.open(`${api.defaults.baseURL}/api/v1/tapes/${row.tapeId}/download`, '_blank')
+async function onDownload(row: Segment) {
+  if (!row.tapeId) return
+  try {
+    // blob 下载:axios 带 JWT header(window.open 不带会 401)
+    const { data, headers } = await api.get(`/api/v1/tapes/${row.tapeId}/download`, {
+      responseType: 'blob',
+    })
+    // 从 Content-Disposition 提取文件名,否则用 tapeId 兜底
+    const dispo = headers['content-disposition'] || ''
+    const match = dispo.match(/filename="?([^";\n]+)"?/)
+    const filename = match?.[1] || `recording-${row.tapeId}.wav`
+    const url = URL.createObjectURL(data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    ElMessage.error('下载失败(录音文件可能不存在)')
   }
 }
 

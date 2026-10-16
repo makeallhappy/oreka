@@ -42,7 +42,7 @@ public class AuthController {
         }
         OrkUser user = userOpt.get();
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), req.loginString());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), req.loginString());
         return ResponseEntity.ok(new LoginResponse(
                 accessToken,
                 refreshToken,
@@ -67,9 +67,10 @@ public class AuthController {
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // 用 loginString 重新查(拿到完整 OrkUser 生成新 token)
-        // 简化:loginString 从 user 反查太绕,直接用 userId 生成,loginString 置空由前端重新 login
-        String accessToken = jwtTokenProvider.generateAccessToken(userId, "");
+        // 从 refresh token 的 claim 里取 loginString(生成时放入,不用再反查数据库)
+        String loginString = jwtTokenProvider.getLoginString(claims);
+        if (loginString == null) loginString = "";
+        String accessToken = jwtTokenProvider.generateAccessToken(userId, loginString);
         return ResponseEntity.ok(new LoginResponse(
                 accessToken,
                 req.refreshToken(),

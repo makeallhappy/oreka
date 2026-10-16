@@ -1,6 +1,8 @@
 package net.sf.oreka.spring.service;
 
+import net.sf.oreka.persistent.OrkLoginString;
 import net.sf.oreka.persistent.OrkUser;
+import net.sf.oreka.spring.repository.LoginStringRepository;
 import net.sf.oreka.spring.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +29,14 @@ public class UserStateService {
     private static final Logger log = LoggerFactory.getLogger(UserStateService.class);
 
     private final UserRepository userRepository;
+    private final LoginStringRepository loginStringRepository;
+    private final PortUserRegistry portUserRegistry;
 
-    public UserStateService(UserRepository userRepository) {
+    public UserStateService(UserRepository userRepository, LoginStringRepository loginStringRepository,
+                            PortUserRegistry portUserRegistry) {
         this.userRepository = userRepository;
+        this.loginStringRepository = loginStringRepository;
+        this.portUserRegistry = portUserRegistry;
     }
 
     /**
@@ -46,9 +53,7 @@ public class UserStateService {
             return "unknown userstate: " + userState;
         }
 
-        // TODO: OrkLoginString 关联查找(老代码 UserManager.getByLoginString)
-        // 当前简化:loginString 直接当 OrkUser.id 不合适,先检查是否有任何用户
-        // 完整实现需要 LoginStringRepository.findByLoginString → OrkUser
+        // loginString → OrkUser 关联查询(OrkLoginString 表)
         Optional<OrkUser> user = findUserByLoginString(loginString);
         if (user.isEmpty()) {
             String comment = "Could not find user for login string:" + loginString;
@@ -56,22 +61,25 @@ public class UserStateService {
             return comment;
         }
 
-        // TODO(M3): Port 绑定/解绑(需要运行时 Port 状态,不是直接落库)
-        log.info("User {} {} on port {} (port binding pending M3)",
-                loginString, userState.toLowerCase(), recPort);
+        // port 绑定/解绑(运行时内存状态,对齐老 PortManager 设计)
+        OrkUser u = user.get();
+        if ("LOGIN".equals(userState)) {
+            portUserRegistry.bind(recPort, u.getId(), loginString);
+        } else {
+            portUserRegistry.unbind(recPort);
+        }
+        log.info("User {} (id={}) {} on port {}", loginString, u.getId(), userState.toLowerCase(), recPort);
         return null;
     }
 
     /**
-     * 按 loginString 找用户 —— 简化版
-     * 完整版应查 OrkLoginString 表(loginString → OrkUser 关联)
+     * 按 loginString 找用户 —— 经 OrkLoginString 表关联(对齐老代码 UserManager.getByLoginString)
      */
     private Optional<OrkUser> findUserByLoginString(String loginString) {
         if (loginString == null || loginString.isBlank()) {
             return Optional.empty();
         }
-        // TODO: 实现 LoginStringRepository 后改成关联查询
-        // 当前先返回空(契约测试只验证协议容错,不验证业务)
-        return Optional.empty();
+        return loginStringRepository.findFirstByLoginStringOrderByIdAsc(loginString)
+                .map(OrkLoginString::getUser);
     }
 }

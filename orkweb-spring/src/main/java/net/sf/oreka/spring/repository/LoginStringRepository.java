@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface LoginStringRepository extends JpaRepository<OrkLoginString, Integer> {
-    Optional<OrkLoginString> findByLoginString(String loginString);
+    Optional<OrkLoginString> findFirstByLoginStringOrderByIdAsc(String loginString);
 }
