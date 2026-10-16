@@ -1,0 +1,60 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: orkweb-spring
+
+  datasource:
+    url: jdbc:mysql://${OREKA_DB_HOST:localhost}:${OREKA_DB_PORT:3306}/oreka?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${OREKA_DB_USER:root}
+    password: ${OREKA_DB_PASSWORD:oreka123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # schema 不动,只验证实体映射与现有库一致
+      naming:
+        # 老库列名是驼峰(loginString),Hibernate 6 默认转 snake_case 会对不上,
+        # 强制保留实体属性原名
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# JWT
+orkweb:
+  jwt:
+    # 生产环境必须覆盖(env: ORKWEB_JWT_SECRET)
+    secret: ${ORKWEB_JWT_SECRET:dev-only-secret-key-change-me-in-production-32bytes}
+    access-token-ttl-minutes: 120
+    refresh-token-ttl-days: 7
+  # orkaudio 录音文件目录(音频流服务用)
+  audio-output-path: ${OREKA_AUDIO_PATH:/var/log/orkaudio/audio}
+
+# Actuator(健康检查)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# Logging
+logging:
+  level:
+    net.sf.oreka: DEBUG
+    org.springframework.security: INFO
+
+# SpringDoc OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
