@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: orkweb-spring
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   datasource:
     url: jdbc:mysql://${OREKA_DB_HOST:localhost}:${OREKA_DB_PORT:3306}/oreka?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
