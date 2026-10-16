@@ -34,6 +34,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 认证端点放行
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/v1/captcha", "/api/v1/captcha/**").permitAll()
                 // orkaudio 上报端点放行(legacy 协议,无 JWT;生产环境建议网络层隔离)
                 // /orktrack/command 别名:兼容老 orkaudio TrackerServicename 拼接的路径
                 .requestMatchers("/command", "/orktrack/command").permitAll()

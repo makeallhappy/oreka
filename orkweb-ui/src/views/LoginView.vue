@@ -11,6 +11,15 @@
                     :prefix-icon="Lock" show-password @keyup.enter="onLogin" />
         </el-form-item>
         <el-form-item>
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" placeholder="验证码(算式结果)" size="large"
+                      :prefix-icon="Key" @keyup.enter="onLogin" />
+            <img v-if="captchaImg" :src="captchaImg" class="captcha-img" title="点击刷新验证码"
+                 alt="验证码" @click="loadCaptcha" />
+            <div v-else class="captcha-img captcha-loading" @click="loadCaptcha">点击加载</div>
+          </div>
+        </el-form-item>
+        <el-form-item>
           <el-button type="primary" size="large" class="btn" :loading="loading" @click="onLogin">
             登 录
           </el-button>
@@ -21,31 +30,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
+import { User, Lock, Key } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/api/client'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const form = ref({ loginString: '', password: '' })
+const form = ref({ loginString: '', password: '', captchaCode: '' })
 const loading = ref(false)
+const captchaImg = ref('')
+const captchaId = ref('')
+
+async function loadCaptcha() {
+  form.value.captchaCode = ''
+  try {
+    const { data } = await api.get('/api/v1/captcha')
+    captchaId.value = data.captchaId
+    captchaImg.value = data.imageBase64
+  } catch {
+    ElMessage.error('验证码加载失败,点击图片重试')
+    captchaImg.value = ''
+  }
+}
+
+onMounted(loadCaptcha)
 
 async function onLogin() {
   if (!form.value.loginString || !form.value.password) {
     ElMessage.warning('请输入登录名和密码')
     return
   }
+  if (!form.value.captchaCode) {
+    ElMessage.warning('请输入验证码')
+    return
+  }
   loading.value = true
   try {
-    await auth.login(form.value.loginString, form.value.password)
+    await auth.login(form.value.loginString, form.value.password, captchaId.value, form.value.captchaCode)
     ElMessage.success('登录成功')
     router.push((route.query.redirect as string) || '/')
   } catch (e: any) {
-    ElMessage.error(e.response?.status === 401 ? '登录名或密码错误' : '登录失败,请检查服务')
+    ElMessage.error(e.response?.status === 401 ? '登录名、密码或验证码错误' : '登录失败,请检查服务')
+    loadCaptcha()  // 失败后刷新验证码(一次性已失效)
   } finally {
     loading.value = false
   }
@@ -57,4 +88,8 @@ async function onLogin() {
 .login-card { width: 400px; }
 .title { text-align: center; margin: 0 0 24px; color: #333; }
 .btn { width: 100%; }
+.captcha-row { display: flex; gap: 8px; width: 100%; }
+.captcha-row .el-input { flex: 1; }
+.captcha-img { width: 130px; height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #dcdfe6; flex-shrink: 0; }
+.captcha-loading { display: flex; align-items: center; justify-content: center; font-size: 12px; color: #909399; background: #f5f7fa; }
 </style>

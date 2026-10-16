@@ -27,15 +27,21 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CaptchaController captchaController;
 
-    public AuthController(UserService userService, JwtTokenProvider jwtTokenProvider) {
+    public AuthController(UserService userService, JwtTokenProvider jwtTokenProvider, CaptchaController captchaController) {
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.captchaController = captchaController;
     }
 
     @PostMapping("/login")
     @Operation(summary = "登录", description = "loginString + password → JWT;老明文密码验证成功后自动升级 BCrypt")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
+        // 先校验验证码(一次性),不对直接 401
+        if (!captchaController.verify(req.captchaId(), req.captchaCode())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         Optional<OrkUser> userOpt = userService.authenticate(req.loginString(), req.password());
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

@@ -18,8 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value)
 
-  async function login(loginString: string, password: string) {
-    const { data } = await api.post('/api/v1/auth/login', { loginString, password })
+  async function login(loginString: string, password: string, captchaId: string, captchaCode: string) {
+    const { data } = await api.post('/api/v1/auth/login', { loginString, password, captchaId, captchaCode })
     accessToken.value = data.accessToken
     refreshToken.value = data.refreshToken
     user.value = data.user
