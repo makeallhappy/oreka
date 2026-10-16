@@ -15,21 +15,24 @@ services:
       timeout: 5s
       retries: 20
 
-  tomcat:
-    image: tomcat:9.0-jdk11-temurin
-    container_name: oreka-tomcat
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./orktrack/target/orktrack-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orktrack.war:ro
-      - ./orkweb/target/orkweb-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orkweb.war:ro
-      - ./docker-config:/etc/oreka:ro
-      - orkweb_logs:/var/log/orkweb
-    depends_on:
-      mysql:
-        condition: service_healthy
-    environment:
-      JAVA_OPTS: "-Xmx1g"
+  # tomcat: 已退役(2026-10-16)。老 orkweb/orktrack 已被 orkweb-spring(:8081) 取代,
+  # orkaudio 上报已切到 localhost:8081/orktrack(新系统兼容别名)。
+  # 如需回滚老系统:取消下面注释 + 把 orkaudio-config.xml 的 TrackerTcpPort 改回 8080。
+  # tomcat:
+  #   image: tomcat:9.0-jdk11-temurin
+  #   container_name: oreka-tomcat
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./orktrack/target/orktrack-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orktrack.war:ro
+  #     - ./orkweb/target/orkweb-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orkweb.war:ro
+  #     - ./docker-config:/etc/oreka:ro
+  #     - orkweb_logs:/var/log/orkweb
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   environment:
+  #     JAVA_OPTS: "-Xmx1g"
 
   orkaudio:
     image: oreka-orkaudio:latest
@@ -46,9 +49,8 @@ services:
       - ./docker-config/orkaudio-config.xml:/etc/orkaudio/config.xml:ro
       - orkaudio_logs:/var/log/orkaudio
     depends_on:
-      - tomcat
-    # With network_mode: host, orkaudio reaches orktrack at localhost:8080
-    # (matches TrackerHostname/TrackerTcpPort defaults in config)
+      - mysql
+    # orkaudio 上报到 orkweb-spring(:8081/orktrack 别名),见 docker-config/orkaudio-config.xml
 
 volumes:
   mysql_data:
