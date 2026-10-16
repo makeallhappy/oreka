@@ -43,8 +43,11 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // actuator
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                // 其余全部需认证
-                .anyRequest().authenticated()
+                // 其余 API 全部需认证
+                .requestMatchers("/api/**").authenticated()
+                // 非 API 路径(SPA 静态资源、前端路由)放行 —— 页面本身不涉密,
+                // 数据全靠 JS 带 JWT 调 /api,未认证会被 401 导到登录页
+                .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

@@ -3,7 +3,8 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081',
+  // 同源相对路径:dev 由 vite 代理 /api -> :8081,prod 由 Spring 同源托管
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 30000,
 })
 
