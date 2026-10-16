@@ -1,6 +1,8 @@
 package net.sf.oreka.spring.legacy;
 
+import net.sf.oreka.spring.service.MetadataService;
 import net.sf.oreka.spring.service.TapeService;
+import net.sf.oreka.spring.service.UserStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -28,9 +30,14 @@ public class CommandController {
     private static final Logger log = LoggerFactory.getLogger(CommandController.class);
 
     private final TapeService tapeService;
+    private final MetadataService metadataService;
+    private final UserStateService userStateService;
 
-    public CommandController(TapeService tapeService) {
+    public CommandController(TapeService tapeService, MetadataService metadataService,
+                             UserStateService userStateService) {
         this.tapeService = tapeService;
+        this.metadataService = metadataService;
+        this.userStateService = userStateService;
     }
 
     @GetMapping(value = "/command", produces = MediaType.TEXT_PLAIN_VALUE)
@@ -56,7 +63,9 @@ public class CommandController {
                 case "tape" -> handleTape(lower);
                 case "ping" -> ok(simpleResponse(true, false, "pong"));
                 case "init" -> ok(simpleResponse(true, false, ""));
-                // metadata/userstate/configurelog 后续 M2 补齐
+                case "metadata" -> handleMetadata(lower);
+                case "userstate" -> handleUserState(lower);
+                case "configurelog" -> ok(simpleResponse(true, false, "")); // 老协议里是日志配置,直接 ack
                 default -> {
                     log.warn("Unknown message type: {}", message);
                     yield ok(simpleResponse(false, false, "unknown message: " + message));
@@ -72,6 +81,16 @@ public class CommandController {
         boolean keep = tapeService.notifyTapeMessage(params);
         // TapeResponse: success + deletetape + comment
         return ok(simpleResponse(true, !keep, keep ? "" : "delete requested"));
+    }
+
+    private ResponseEntity<String> handleMetadata(Map<String, String> params) {
+        String error = metadataService.processMetadata(params);
+        return ok(simpleResponse(error == null, false, error == null ? "" : error));
+    }
+
+    private ResponseEntity<String> handleUserState(Map<String, String> params) {
+        String error = userStateService.processUserState(params);
+        return ok(simpleResponse(error == null, false, error == null ? "" : error));
     }
 
     /**

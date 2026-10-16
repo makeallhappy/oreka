@@ -229,4 +229,123 @@ class TapeMessageContractTest {
             // 当前先只验证请求成功
         }
     }
+
+    // ==================== Metadata 消息 ====================
+
+    @Nested
+    @DisplayName("Metadata 消息")
+    class MetadataMessages {
+
+        @Test
+        @DisplayName("已知 service 的 metadata:success=true")
+        void metadata_knownService_success() throws Exception {
+            // 先创建 service(通过 START)
+            mockMvc.perform(get("/command")
+                    .param("message", "tape")
+                    .param("stage", "START")
+                    .param("recid", "rec-030")
+                    .param("timestamp", "1697524800")
+                    .param("duration", "0")
+                    .param("captureport", "SIP/1001")
+                    .param("service", "meta-svc")
+                    .param("nativecallid", "call-uuid-030"));
+
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "metadata")
+                    .param("service", "meta-svc")
+                    .param("captureport", "SIP/1001")
+                    .param("localparty", "1001")
+                    .param("remoteparty", "1002")
+                    .param("direction", "IN")
+                    .param("stage", "START"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            assertThat(result.getResponse().getContentAsString()).contains("success=true");
+        }
+
+        @Test
+        @DisplayName("未知 service 的 metadata:success=false + comment")
+        void metadata_unknownService_fails() throws Exception {
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "metadata")
+                    .param("service", "nonexistent-svc")
+                    .param("captureport", "SIP/1001")
+                    .param("localparty", "1001"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertThat(body).contains("success=false");
+            assertThat(body).contains("does not exist");
+        }
+    }
+
+    // ==================== UserState 消息 ====================
+
+    @Nested
+    @DisplayName("UserState 消息")
+    class UserStateMessages {
+
+        @Test
+        @DisplayName("LOGIN 未知用户:success=false + comment(容错,不 500)")
+        void login_unknownUser_tolerated() throws Exception {
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "userstate")
+                    .param("userstate", "LOGIN")
+                    .param("loginstring", "nobody")
+                    .param("recport", "SIP/1001"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertThat(body).contains("success=false");
+            assertThat(body).contains("Could not find user");
+        }
+
+        @Test
+        @DisplayName("非法 userstate:success=false")
+        void invalidUserState_fails() throws Exception {
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "userstate")
+                    .param("userstate", "BOGUS")
+                    .param("loginstring", "1001")
+                    .param("recport", "SIP/1001"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            assertThat(result.getResponse().getContentAsString()).contains("success=false");
+        }
+    }
+
+    // ==================== 其他消息 ====================
+
+    @Nested
+    @DisplayName("其他消息")
+    class OtherMessages {
+
+        @Test
+        @DisplayName("configurelog:直接 ack success=true")
+        void configureLog_ack() throws Exception {
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "configurelog"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            assertThat(result.getResponse().getContentAsString()).contains("success=true");
+        }
+
+        @Test
+        @DisplayName("未知 message 类型:success=false + comment")
+        void unknownMessage_fails() throws Exception {
+            MvcResult result = mockMvc.perform(get("/command")
+                    .param("message", "bogus"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertThat(body).contains("success=false");
+            assertThat(body).contains("unknown message");
+        }
+    }
 }
