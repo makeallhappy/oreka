@@ -60,7 +60,7 @@ private:
 	bool SSL_handshake(const std::string& host, const std::string& service, int timeout);
 
 
-	boost::asio::io_service  iosvc;
+	boost::asio::io_context  iosvc;
 	boost::asio::deadline_timer deadline_;
 	boost::asio::ssl::context sslcontext;
 	oreka::shared_ptr<SSLSocket> ssl_socket;

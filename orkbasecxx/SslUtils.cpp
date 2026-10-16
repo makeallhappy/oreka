@@ -201,7 +201,7 @@ void handshake_handler(const boost::system::error_code& error, boost::system::er
 }
 
 // callback handler for connect: pass on any error to the initiator of the tcp connection
-void handler(const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator, boost::system::error_code* out_ec)
+void handler(const boost::system::error_code& error, boost::asio::ip::tcp::endpoint endpoint, boost::system::error_code* out_ec)
 {
 	*out_ec = error;
 }
@@ -220,10 +220,9 @@ bool OrkHttpClient::SSL_Session::TCP_connect(const std::string& host, const std:
 
 	// Resolve the host name and service to a list of endpoints.
 	boost::asio::ip::tcp::resolver resolver(iosvc);
-	boost::asio::ip::tcp::resolver::query query(host, service);
-	boost::asio::ip::tcp::resolver::iterator iter;
+	boost::asio::ip::tcp::resolver::results_type endpoints;
 	try {
-		iter = resolver.resolve(query);
+		endpoints = resolver.resolve(host, service);
 	}
 	catch (std::exception& e) {
 		CStdString logMsg;
@@ -250,7 +249,7 @@ bool OrkHttpClient::SSL_Session::TCP_connect(const std::string& host, const std:
 	boost::system::error_code ec = boost::asio::error::would_block;
 
 	// Start the asynchronous operation itself.
-	boost::asio::async_connect(ssl_socket->lowest_layer(), iter, boost::bind(&handler, _1, _2, &ec));
+	boost::asio::async_connect(ssl_socket->lowest_layer(), endpoints, boost::bind(&handler, _1, _2, &ec));
 
 	// set session_is_connected flag to true. If connect fails, this will get
 	// reset below. More importantly, if deadline timer fires, it will call

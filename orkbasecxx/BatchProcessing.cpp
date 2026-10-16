@@ -20,7 +20,6 @@
 #include "ConfigManager.h"
 #include "BatchProcessing.h"
 #include "audiofile/LibSndFileFile.h"
-#include "audiofile/OggOpusFile.h"
 #include "Daemon.h"
 #include "Filter.h"
 #include "Reporting.h"
@@ -296,8 +295,7 @@ void BatchProcessing::ThreadHandler()
 					outFileRef.reset(new LibSndFileFile(SF_FORMAT_GSM610 | SF_FORMAT_WAV));
 					break;
 				case FfOpus:
-					outFileRef.reset( new OggOpusFile());
-					break;
+					// Opus support removed; fall through to PCM WAV
 				case FfPcmWav:
 				default:
 					outFileRef.reset(new LibSndFileFile(SF_FORMAT_PCM_16 | SF_FORMAT_WAV));
