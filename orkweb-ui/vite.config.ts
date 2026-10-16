@@ -14,6 +14,11 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
       },
+      // WebSocket 代理(实时通话状态)
+      '/ws': {
+        target: 'ws://localhost:8081',
+        ws: true,
+      },
     },
   },
 })

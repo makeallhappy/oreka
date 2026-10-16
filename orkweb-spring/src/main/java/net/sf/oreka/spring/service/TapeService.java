@@ -35,10 +35,13 @@ public class TapeService {
 
     private final TapeRepository tapeRepository;
     private final ServiceRepository serviceRepository;
+    private final LiveCallRegistry liveCallRegistry;
 
-    public TapeService(TapeRepository tapeRepository, ServiceRepository serviceRepository) {
+    public TapeService(TapeRepository tapeRepository, ServiceRepository serviceRepository,
+                       LiveCallRegistry liveCallRegistry) {
         this.tapeRepository = tapeRepository;
         this.serviceRepository = serviceRepository;
+        this.liveCallRegistry = liveCallRegistry;
     }
 
     /**
@@ -99,6 +102,7 @@ public class TapeService {
 
         tapeRepository.save(tape);
         log.info("Created tape id={} for nativeCallId={}", tape.getId(), nativeCallId);
+        liveCallRegistry.onCallStart(params);
         return true;
     }
 
@@ -131,6 +135,7 @@ public class TapeService {
         }
         tapeRepository.save(tape);
         log.info("Updated tape id={} to STOP, duration={}", tape.getId(), tape.getDuration());
+        liveCallRegistry.onCallEnd(params);
         return true;
     }
 

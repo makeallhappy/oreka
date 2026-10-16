@@ -24,17 +24,20 @@
     <el-container>
       <el-header class="header">
         <div />
-        <el-dropdown @command="onCommand">
-          <span class="user">
-            {{ auth.user?.firstname || '用户' }}
-            <el-icon><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <div class="header-right">
+          <LiveCallsIndicator />
+          <el-dropdown @command="onCommand">
+            <span class="user">
+              {{ auth.user?.firstname || '用户' }}
+              <el-icon><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </el-header>
       <el-main class="main">
         <router-view />
@@ -47,6 +50,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { Headset, User, AlarmClock, Monitor, ArrowDown } from '@element-plus/icons-vue'
+import LiveCallsIndicator from '@/components/LiveCallsIndicator.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -68,6 +72,7 @@ function onCommand(cmd: string) {
 :deep(.el-menu-item.is-active) { color: #fff; background: #1890ff; }
 :deep(.el-menu-item:hover) { background: rgba(255,255,255,0.08); }
 .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; background: #fff; }
+.header-right { display: flex; align-items: center; }
 .user { cursor: pointer; display: flex; align-items: center; gap: 4px; }
 .main { background: #f5f7fa; padding: 16px; }
 </style>

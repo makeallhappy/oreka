@@ -37,6 +37,8 @@ public class SecurityConfig {
                 // orkaudio 上报端点放行(legacy 协议,无 JWT;生产环境建议网络层隔离)
                 // /orktrack/command 别名:兼容老 orkaudio TrackerServicename 拼接的路径
                 .requestMatchers("/command", "/orktrack/command").permitAll()
+                // WebSocket 实时通话状态(开发期放开;生产按网络层隔离)
+                .requestMatchers("/ws/**").permitAll()
                 // swagger / openapi
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // actuator
