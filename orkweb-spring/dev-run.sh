@@ -5,11 +5,13 @@
 UNIT=orkweb-spring-dev
 JAR=/home/nathan/oreka/orkweb-spring/target/orkweb-spring-0.0.2-SNAPSHOT.jar
 JAVA=/usr/lib/jvm/java-21-openjdk-amd64/bin/java
+# 音频输出路径可用 OREKA_AUDIO_PATH 环境变量覆盖(默认 application.yml 里的 /var/log/orkaudio/audio)
+AUDIO_PATH=${OREKA_AUDIO_PATH:-/tmp/orkaudio-audio}
 
 case "$1" in
   start)
     systemctl --user start "$UNIT" 2>/dev/null || \
-      systemd-run --user --unit="$UNIT" --no-block "$JAVA" -jar "$JAR"
+      systemd-run --user --unit="$UNIT" --no-block --setenv=OREKA_AUDIO_PATH="$AUDIO_PATH" "$JAVA" -jar "$JAR"
     sleep 8
     systemctl --user status "$UNIT" --no-pager | head -5
     ;;
@@ -20,7 +22,7 @@ case "$1" in
   restart)
     systemctl --user stop "$UNIT" 2>/dev/null
     sleep 2
-    systemd-run --user --unit="$UNIT" --no-block "$JAVA" -jar "$JAR"
+    systemd-run --user --unit="$UNIT" --no-block --setenv=OREKA_AUDIO_PATH="$AUDIO_PATH" "$JAVA" -jar "$JAR"
     sleep 8
     systemctl --user status "$UNIT" --no-pager | head -5
     ;;
