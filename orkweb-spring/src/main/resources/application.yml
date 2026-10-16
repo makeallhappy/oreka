@@ -1,12 +1,13 @@
 server:
   port: 8443
   ssl:
-    # 自签名证书(生产应换成正式证书),keytool 生成,见 keystore 备注
+    # 服务器证书:AVAYA System Manager CA 签发的 orkweb.soundhao.com(含完整证书链,2026-2028)
+    # 开发期回退自签名:ORKWEB_SSL_KEYSTORE=classpath:keystore/orkweb.p12 即可
     enabled: ${ORKWEB_SSL_ENABLED:true}
-    key-store: ${ORKWEB_SSL_KEYSTORE:classpath:keystore/orkweb.p12}
-    key-store-password: ${ORKWEB_SSL_KEYSTORE_PASSWORD:changeit}
+    key-store: ${ORKWEB_SSL_KEYSTORE:file:/home/nathan/cert/ork.p12}
+    key-store-password: ${ORKWEB_SSL_KEYSTORE_PASSWORD:Welcome01}
     key-store-type: ${ORKWEB_SSL_KEYSTORE_TYPE:PKCS12}
-    key-alias: ${ORKWEB_SSL_KEY_ALIAS:orkweb}
+    key-alias: ${ORKWEB_SSL_KEY_ALIAS:orkweb.soundhao.com}
   # 附加 HTTP 连接器(8081)仅供 orkaudio /command 上报,由 NetConfig 注册
 
 spring:
