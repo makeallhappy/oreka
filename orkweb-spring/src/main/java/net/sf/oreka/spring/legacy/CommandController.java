@@ -40,12 +40,13 @@ public class CommandController {
         this.userStateService = userStateService;
     }
 
-    @GetMapping(value = "/command", produces = MediaType.TEXT_PLAIN_VALUE)
+    // 同时监听根路径(新)和 /orktrack 前缀(老 orkaudio TrackerServicename 拼接)
+    @GetMapping(value = {"/command", "/orktrack/command"}, produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> commandGet(@RequestParam Map<String, String> params) {
         return handle(params);
     }
 
-    @PostMapping(value = "/command", produces = MediaType.TEXT_PLAIN_VALUE)
+    @PostMapping(value = {"/command", "/orktrack/command"}, produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> commandPost(@RequestParam Map<String, String> params) {
         return handle(params);
     }
@@ -55,8 +56,10 @@ public class CommandController {
         Map<String, String> lower = new java.util.HashMap<>();
         params.forEach((k, v) -> lower.put(k.toLowerCase(), v));
 
-        String message = lower.getOrDefault("message", "").toLowerCase();
-        log.debug("Command: message={} params={}", message, lower);
+        // 路由参数:老 orktrack ServletRequestSerializer 按 cmd -> class -> type 顺序找,
+        // orkaudio 实际发的是 type(实测:type=init/tape/...)。message 是容错别名。
+        String message = firstNonBlank(lower, "cmd", "class", "type", "message").toLowerCase();
+        log.debug("Command: type={} params={}", message, lower);
 
         try {
             return switch (message) {
@@ -91,6 +94,17 @@ public class CommandController {
     private ResponseEntity<String> handleUserState(Map<String, String> params) {
         String error = userStateService.processUserState(params);
         return ok(simpleResponse(error == null, false, error == null ? "" : error));
+    }
+
+    /**
+     * 按优先级取第一个非空参数值(老 orktrack 路由顺序)
+     */
+    private String firstNonBlank(Map<String, String> params, String... keys) {
+        for (String k : keys) {
+            String v = params.get(k);
+            if (v != null && !v.isBlank()) return v;
+        }
+        return "";
     }
 
     /**

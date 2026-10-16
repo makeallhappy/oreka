@@ -18,7 +18,7 @@
 
 	<!-- OrkTrack location (Tomcat on host network = localhost) -->
 	<TrackerHostname>localhost</TrackerHostname>
-	<TrackerTcpPort>8080</TrackerTcpPort>
+	<TrackerTcpPort>8081</TrackerTcpPort>
 	<TrackerServicename>orktrack</TrackerServicename>
 	<CapturedFileStreamerPath>audio</CapturedFileStreamerPath>
 
