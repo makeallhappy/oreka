@@ -1,0 +1,47 @@
+<config>
+	<!-- Oreka orkaudio config for Docker (host network mode) -->
+	<!-- Based on distribution/docker/config.xml, simplified for docker-compose -->
+
+	<AudioOutputPath>/var/log/orkaudio/audio</AudioOutputPath>
+
+	<!-- Capture plugin: libvoip for SIP / Cisco Skinny / pure RTP -->
+	<CapturePlugin>libvoip.so</CapturePlugin>
+	<CapturePluginPath>/usr/lib</CapturePluginPath>
+	<PluginsDirectory>/usr/lib/orkaudio/plugins</PluginsDirectory>
+
+	<!-- Audio file storage format: pcmwav / gsm / ulaw / alaw / native -->
+	<StorageAudioFormat>pcmwav</StorageAudioFormat>
+	<StereoRecording>true</StereoRecording>
+	<TapeNumChannels>2</TapeNumChannels>
+	<AudioFileBitRate>8000</AudioFileBitRate>
+	<DeleteNativeFile>yes</DeleteNativeFile>
+
+	<!-- OrkTrack location (Tomcat on host network = localhost) -->
+	<TrackerHostname>localhost</TrackerHostname>
+	<TrackerTcpPort>8080</TrackerTcpPort>
+	<TrackerServicename>orktrack</TrackerServicename>
+	<CapturedFileStreamerPath>audio</CapturedFileStreamerPath>
+
+	<CapturePortFilters>LiveMonitoring</CapturePortFilters>
+	<TapeProcessors>BatchProcessing, Reporting</TapeProcessors>
+	<BatchProcessingEnhancePriority>true</BatchProcessingEnhancePriority>
+	<NumBatchThreads>25</NumBatchThreads>
+
+	<AudioFilePermissions>644</AudioFilePermissions>
+
+	<VoIpPlugin>
+		<PcapSocketBufferSize>8388608</PcapSocketBufferSize>
+		<SipExtractFields>X-Unique-ID</SipExtractFields>
+
+		<AvayaDetect>yes</AvayaDetect>
+		<RtcpDetect>true</RtcpDetect>
+
+		<!-- Capture on all interfaces (host network mode).
+		     Change to a specific device (e.g. eth0) if needed;
+		     available devices are listed in orkaudio.log at startup. -->
+		<Devices>any</Devices>
+
+		<SipOverTcpSupport>yes</SipOverTcpSupport>
+		<SipReportFullAddress>yes</SipReportFullAddress>
+	</VoIpPlugin>
+</config>

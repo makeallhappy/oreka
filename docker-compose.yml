@@ -31,6 +31,26 @@ services:
     environment:
       JAVA_OPTS: "-Xmx1g"
 
+  orkaudio:
+    image: oreka-orkaudio:latest
+    container_name: oreka-orkaudio
+    build:
+      context: ./
+      dockerfile: Dockerfile.orkaudio
+    # Packet capture requires host networking + capabilities
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    volumes:
+      - ./docker-config/orkaudio-config.xml:/etc/orkaudio/config.xml:ro
+      - orkaudio_logs:/var/log/orkaudio
+    depends_on:
+      - tomcat
+    # With network_mode: host, orkaudio reaches orktrack at localhost:8080
+    # (matches TrackerHostname/TrackerTcpPort defaults in config)
+
 volumes:
   mysql_data:
   orkweb_logs:
+  orkaudio_logs:

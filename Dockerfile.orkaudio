@@ -1,0 +1,81 @@
+# syntax=docker/dockerfile:1
+# Oreka orkaudio capture service — Debian 13 (trixie)
+# Multi-stage: builder compiles from source, runtime carries only shared libs.
+
+FROM debian:13 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Use USTC mirror (deb.debian.org is slow/blocked from this network)
+RUN sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/debian.sources
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential autoconf automake libtool git \
+    libboost-dev libapr1-dev liblog4cxx-dev libpcap-dev libxerces-c-dev \
+    libsndfile1-dev libspeex-dev libdw-dev libunwind-dev \
+    libcap-dev libbackward-cpp-dev libbcg729-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY . /build
+
+# orkbasecxx
+RUN cd orkbasecxx \
+    && autoreconf -i \
+    && ./configure CXX=g++ \
+    && make -j$(nproc)
+
+# orkaudio (links against orkbasecxx build tree via LIBRARY_PATH)
+RUN cd orkaudio \
+    && autoreconf -i \
+    && ./configure CXX=g++ \
+    && make -j$(nproc) LIBRARY_PATH=/build/orkbasecxx/.libs
+
+# ---------------------------------------------------------------------------
+
+FROM debian:13
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Use USTC mirror
+RUN sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/debian.sources
+
+# Runtime shared libraries only (no -dev packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libapr1 liblog4cxx15 libpcap0.8 libxerces-c3.2 \
+    libsndfile1 libspeex1 libdw1 libunwind8 \
+    libcap2 libbcg729-0 libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Core library
+COPY --from=builder /build/orkbasecxx/.libs/liborkbase.so.0.0.0 /usr/lib/
+RUN ln -sf liborkbase.so.0.0.0 /usr/lib/liborkbase.so.0 \
+    && ln -sf liborkbase.so.0.0.0 /usr/lib/liborkbase.so \
+    && ldconfig
+
+# Main binary
+COPY --from=builder /build/orkaudio/orkaudio /usr/sbin/orkaudio
+
+# Capture plugins (loaded at runtime from CapturePluginPath)
+COPY --from=builder /build/orkaudio/audiocaptureplugins/voip/.libs/libvoip.so.0.0.0 /usr/lib/
+RUN ln -sf libvoip.so.0.0.0 /usr/lib/libvoip.so.0 && ln -sf libvoip.so.0.0.0 /usr/lib/libvoip.so
+COPY --from=builder /build/orkaudio/audiocaptureplugins/generator/.libs/libgenerator.so.0.0.0 /usr/lib/
+RUN ln -sf libgenerator.so.0.0.0 /usr/lib/libgenerator.so.0 && ln -sf libgenerator.so.0.0.0 /usr/lib/libgenerator.so
+
+# Filter plugins
+RUN mkdir -p /usr/lib/orkaudio/plugins
+COPY --from=builder /build/orkaudio/plugins/librtpmixer.so /usr/lib/orkaudio/plugins/
+COPY --from=builder /build/orkaudio/plugins/libg729codec.so /usr/lib/orkaudio/plugins/
+
+# Config
+RUN mkdir -p /etc/orkaudio
+COPY orkaudio/logging-linux-template.properties /etc/orkaudio/logging.properties
+COPY distribution/docker/config.xml /etc/orkaudio/config_default.xml
+COPY distribution/docker/entrypoint.sh /opt/entrypoint.sh
+RUN chmod +x /opt/entrypoint.sh
+
+# orkaudio needs CAP_NET_RAW + CAP_NET_ADMIN for packet capture;
+# grant at runtime: docker run --cap-add NET_RAW --cap-add NET_ADMIN --network host
+
+ENV SHELL=/bin/bash
+ENTRYPOINT ["/opt/entrypoint.sh"]
+CMD ["orkaudio", "debug"]
