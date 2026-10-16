@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: oreka-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: oreka123
+      MYSQL_DATABASE: oreka
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-poreka123"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  tomcat:
+    image: tomcat:9.0-jdk11-temurin
+    container_name: oreka-tomcat
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./orktrack/target/orktrack-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orktrack.war:ro
+      - ./orkweb/target/orkweb-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orkweb.war:ro
+      - ./docker-config:/etc/oreka:ro
+      - orkweb_logs:/var/log/orkweb
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      JAVA_OPTS: "-Xmx1g"
+
+volumes:
+  mysql_data:
+  orkweb_logs:
