@@ -1,3 +1,10 @@
+# oreka docker-compose.yml —— 改写版(2026-10-21)
+# 变更: mysql 独立到自定义网络,显式关闭 IPv6。
+#   原因: oreka_default 默认 bridge 网络产生的 veth 带 link-local IPv6 地址
+#   (fe80::680f:53ff:feec:b37d),导致 SIPREC 系统的 rtpengine 启动时
+#   libwebsockets 枚举接口崩溃。改用 enable_ipv6:false 的网络根治。
+# 数据: mysql 数据在 oreka_mysql_data volume,重建容器不丢。
+
 services:
   mysql:
     image: mysql:8.0
@@ -8,39 +15,22 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"   # 发布到宿主机回环,SIPREC(host 网络)需连 127.0.0.1:3306
+    networks:
+      - mysql_net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-poreka123"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  # tomcat: 已退役(2026-10-16)。老 orkweb/orktrack 已被 orkweb-spring(:8081) 取代,
-  # orkaudio 上报已切到 localhost:8081/orktrack(新系统兼容别名)。
-  # 如需回滚老系统:取消下面注释 + 把 orkaudio-config.xml 的 TrackerTcpPort 改回 8080。
-  # tomcat:
-  #   image: tomcat:9.0-jdk11-temurin
-  #   container_name: oreka-tomcat
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./orktrack/target/orktrack-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orktrack.war:ro
-  #     - ./orkweb/target/orkweb-0.0.2-SNAPSHOT.war:/usr/local/tomcat/webapps/orkweb.war:ro
-  #     - ./docker-config:/etc/oreka:ro
-  #     - orkweb_logs:/var/log/orkweb
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #   environment:
-  #     JAVA_OPTS: "-Xmx1g"
-
+  # orkaudio 用 host 网络抓包,保持原样
   orkaudio:
     image: oreka-orkaudio:latest
     container_name: oreka-orkaudio
     build:
       context: ./
       dockerfile: Dockerfile.orkaudio
-    # Packet capture requires host networking + capabilities
     network_mode: host
     cap_add:
       - NET_RAW
@@ -50,7 +40,11 @@ services:
       - orkaudio_logs:/var/log/orkaudio
     depends_on:
       - mysql
-    # orkaudio 上报到 orkweb-spring(:8081/orktrack 别名),见 docker-config/orkaudio-config.xml
+
+networks:
+  mysql_net:
+    driver: bridge
+    enable_ipv6: false   # 关键:关闭 IPv6,避免产生干扰 rtpengine 的 veth
 
 volumes:
   mysql_data:
